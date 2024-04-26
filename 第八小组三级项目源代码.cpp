@@ -1,0 +1,1591 @@
+#include <iostream>
+#include <cstring>
+#include <conio.h>
+#include <fstream>
+#include <windows.h> 
+//#include <chrono>
+#include <ctime>
+using namespace std;
+#define nullptr 0
+void menu_schedule(string clas);
+void menu_date();
+void date_current();
+void date_sub();
+void date_nday();
+void date();
+
+template <typename T>
+class Node;
+
+template <typename T>
+ostream& operator<<(ostream& out, Node<T>* node);
+
+template <typename T>
+class Stack;
+
+//4.19
+//额外功能： 导出所有tch， stu    topk功能    根据getclass可在list中确定T的类 
+//优化菜单， 重载>><<   根据不同node涉及不同输入提示 
+//每次操作成功后有缓冲时间
+//使用文件保存信息 
+//排名 
+//输入choice不需要回车 
+
+
+
+// 定义一个节点类，模板实现
+//使用时先Node<student>确定T，后Node<student>(obj)初始化data
+//例如 student obj("zhang", "20101", 95);  new_node = new Node<student>(obj); 
+
+//4.20
+//构造时文件读入      get
+//简化选择操作次数（尽量取消enter） get
+//Node<T>的无参默认构造函数    get
+//Node<T>的赋值构造函数    get
+//student ranking初始化   
+//去掉开始时”成功list" 		get
+//读取文件总会多读一个人 		get
+//从文件读取的数据不能正确加入链表  get 
+
+//4.24
+//  加入Date日期计算 
+//加入Queue日程表 
+
+class Date;
+ostream& operator<<(ostream& out, Date& obj);
+class Date
+{
+  public:
+    // 获取某年某月的天数
+    int GetMonthDay(int year, int month);
+    // 全缺省的构造函数
+    Date(int year = 1900, int month = 1, int day = 1) {
+        _year = year;
+        _month = month;
+        _day = day;
+    }
+    Date(const Date& d) {
+        _year = d._year;
+        _month = d._month;
+        _day = d._day;
+    }
+    Date& operator=(const Date& d);
+    // 析构
+    ~Date() {
+    };
+    // 日期+=天数
+    void operator+=(int day);
+    // 日期+天数
+    Date operator+(int day);
+    // 日期-天数
+    Date operator-(int day);
+    // 日期-=天数
+    Date& operator-=(int day);
+    // 前置++
+    Date operator++(int);
+    // 后置++
+    Date& operator++();
+    // 后置--
+    Date operator--(int);
+    // 前置--
+    Date& operator--();
+    // >运算符重载
+    bool operator>( Date& d);
+    // ==运算符重载
+    bool operator==( Date& d);
+    // >=运算符重载
+    bool operator >= ( Date& d);
+    // <运算符重载
+    bool operator < ( Date& d);
+    // <=运算符重载
+    bool operator <= ( Date& d);
+    // !=运算符重载
+    bool operator != (Date& d);
+    int operator-(Date d);
+    // 日期-日期 返回天数
+    int gety();
+    int getm();
+    int getd();
+  private:
+    int _year;
+    int _month;
+    int _day;
+};
+
+int Date::GetMonthDay(int year, int month) {
+        if (month < 1 || month > 12) {
+            cout << "日期输入有误";
+            exit(1);
+        }
+        int days[13] = {-1, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+        if (month == 2 && (year % 4 == 0 && year % 100 != 0 || year % 400 == 0)) {
+            return 29;
+        }
+        return days[month];
+}
+
+Date& Date::operator=(const Date& d) {
+        _year = d._year;
+        _month = d._month;
+        _day = d._day;
+        return *this;
+    }
+
+void Date::operator+=(int day) {
+        _day += day;
+        while (_day > GetMonthDay(_year, _month)) {
+            _day -= GetMonthDay(_year, _month);
+            _month++;
+            if (_month > 12) {
+                _year++;
+                _month = 1;
+            }
+        }
+//      cout<<"进入+=operator"<<*this<<endl;
+    }
+    
+Date Date::operator+(int day) {
+        Date obj = *this;
+        obj += day;
+        return obj;
+    }
+
+Date Date::operator-(int day) {
+    Date obj = *this;
+    obj -= day;
+    return obj;
+}
+
+int Date::gety() {
+    return _year;
+}
+int Date::getm() {
+    return _month;
+}
+int Date::getd() {
+    return _day;
+}
+    
+int Date::operator-(Date d)
+    {
+        Date max, min;
+        max = *this;
+        min = d;
+        int sign = 1;
+        int ret = 0;
+        if(max<min)
+        {
+            Date tmp = max;
+            max = min;
+            min = tmp;
+            sign = -1;
+        }
+        while(max>min)
+        {
+            ++min;
+            ret++;
+        }
+        return sign*ret;    
+    }
+    
+bool Date::operator != (Date& d) {
+    return !(*this == d);
+}
+
+bool Date::operator <= ( Date& d) {
+    if (*this < d || *this == d) {
+        return true;
+    }
+    return false;
+}
+    
+bool Date::operator < ( Date& d) {
+    if (*this > d || *this == d) {
+        return false;
+    }
+    return true;
+}
+
+bool Date::operator >= ( Date& d) {
+    if (*this < d) {
+        return false;
+    }
+    return true;
+}
+
+bool Date::operator==( Date& d) {
+    if (_year == d.gety() && _month == d.getm() && _day == d.getd()) {
+        return true;
+    }
+    return false;
+}
+
+bool Date::operator>( Date& d) {
+    if (_year > d.gety()) {
+        return true;
+    }
+    if (this->_year == d.gety()) {
+        if (this->_month > d.getm()) {
+
+            return true;
+        } else if (this->_month == d.getm()) {
+            if (this->_day > d.getd()) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+    
+Date& Date::operator--() {
+    *this -= 1;
+    return *this;
+}
+
+Date Date::operator--(int) {
+    *this -= 1;
+    return *this + 1;
+}
+
+Date& Date::operator++() {
+
+    *this += 1;
+    return *this;
+}
+
+Date Date::operator++(int) {
+
+    *this += 1;
+    Date obj = *this - 1;
+    return obj;
+}
+
+Date& Date::operator-=(int day) {
+    _day -= day;
+    while (_day < 1) {
+        _month--;
+        if (_month < 1) {
+            _month = 12;
+            _year--;
+        }
+
+        _day += GetMonthDay(_year, _month);
+    }
+    return *this;
+}
+
+
+
+//cout实现输出Date 
+ostream& operator<<(ostream& out, Date& obj) 
+{
+    cout << obj.gety() << "年" << obj.getm() << "月" << obj.getd() << "日";
+    return out;
+} 
+
+//class Teacher;
+//class Student;
+template <typename T>
+class Node {
+//	friend List<Teacher>;
+//	friend List<Student>;
+	public:
+	T data;
+	Node<T>* prev;
+	Node<T>* next;
+	
+	Node(const T& data) : data(data), next(nullptr),prev(nullptr) {}
+	Node(T* data):data(*data),next(nullptr),prev(nullptr){}
+	Node():next(nullptr),prev(nullptr){}
+	Node operator=(Node n) 
+	{
+		prev = n.prev;
+		next = n.next;
+		data = n.data;
+		return *this;
+	}
+	~Node() {
+
+	}
+};
+
+// 定义链表类模板 
+template <typename T>
+class List{
+protected:
+	Node<T>* head;
+	Node<T>* tail;
+	static int count;		//统计类的对象个数 
+
+public:
+	List();
+	~List();
+
+	// 添加数据到链表
+	void add();
+	
+	// 添加数据到链表
+	void add(Node<T>* new_node);
+	
+	// 删除链表中的数据
+	void remove(Stack<T>* stack);
+	
+	// 查询链表中的数据
+	bool find();
+	
+	void change();
+	
+	// 清空链表
+	void clear(int count);
+	
+	 void getall();
+	 
+	 //导出所有满足要求的人员信息 
+	void topk();
+	int getcount()
+	{
+		return count;
+	}
+};
+
+template <typename T>
+List<T>::List() : head(nullptr) , tail(nullptr){
+if(T::getclas()=="course")
+{
+	return;
+}
+char* fname = "TchData.txt";
+
+if (T::getclas()=="Student")
+{
+	fname = "StuData.txt";
+}
+fstream pf(fname);
+try
+{
+	if(!pf.is_open())
+	{
+		throw "打开"+string(fname)+"失败" ;
+	}
+}
+catch(string err)
+{
+//	cerr<<"将自动新建 "<<fname<<endl;
+	pf<<0;
+	return;
+}
+
+int _count;
+pf>>_count;
+count=_count;
+for(int i = _count; i>0;i--)
+{
+	T t("");
+	t.fread(pf);
+	Node<T>* new_obj = new Node<T>(t);
+	if(head==nullptr)
+	{
+		head = tail = new_obj;
+	}
+	else
+	{
+		new_obj->prev = tail;
+		tail->next = new_obj;
+		tail = new_obj;
+	}
+	
+}
+pf.close();
+}
+template <typename T>
+void List<T>::add()
+{
+	string base = "工资";
+	int rk=1;//排名ranking 
+	if(T::getclas()=="Student") 
+	{
+		base = "得分";
+	}
+	//add同时保持list有序：head到tail 从大到小 
+	string _name, _id;
+	int _score;
+	cout<<"请输入姓名 id "<<base<<":>";
+	cin>>_name>>_id>>_score;
+	//防止同id 
+	Node<T>* tmp = head;
+	while(tmp)
+	{
+		string info = "学号" ;
+		if(T::getclas()=="Teacher") 
+		{
+			info="工号" ; 
+		}
+		if(tmp->data.id==_id)
+		{
+			cout<<info+"与已有人员信息重复，请改变"+info<<endl;
+			return;
+		}
+		tmp = tmp->next;
+	}
+	T* new_obj = new T(_name, _id, _score);
+	Node<T>* new_node = new Node<T>(*new_obj);
+	if (head!=nullptr)
+	{
+	//list不为空 
+		//找到第一个比new_node小的节点，插在其前面 
+		bool error = true;
+		if (new_node->data.gets()>=head->data.gets())
+		{
+			//new_obj比head大，令new_obj为head
+			new_node->next = head;
+			head->prev = new_node;
+			head = new_node;
+		}
+		else if(tail->data.gets()>=new_node->data.gets())
+		{
+			//此时new_obj<tail,new_tail插在tail后面，更新tail
+			 tail->next = new_node;
+			 new_node->prev = tail;
+			 tail = tail->next;
+		}
+		else
+		{
+			//new_obj应该在中间
+			 Node<T>* tmp = head;
+			 while (tmp)
+			 {
+			 	if(tmp->data.gets()<=new_node->data.gets())
+			 	{
+			 		new_node->next = tmp;
+			 		new_node->prev = tmp->prev; 
+			 		tmp->prev->next = new_node;
+			 		tmp->prev = new_node;
+			 		error = false;
+			 		break;
+				}
+			 	tmp = tmp->next;
+			 }
+			 if (error)
+			 cout<<"add异常退出，找不到合适插入位置"<<endl;
+		}
+//		tail->next = new_node;
+//		tail = tail->next;
+
+	}
+	else
+	{
+	//list为空 
+		tail = head = new_node;
+		rk = 1;
+	}
+	//为各节点排名
+	if(T::getclas()=="Student")
+	{
+		Node<T>* tmp = head; 
+		while(tmp)
+		{
+			tmp->data.ranking = rk;
+			tmp = tmp->next;
+			rk++;
+		}
+	}	
+	count +=1;
+}
+
+template <typename T>
+void List<T>::add(Node<T>* new_node)
+{
+//	new_node->prev = new_node->next = nullptr;
+	
+	if(new_node==nullptr)
+	{
+		cout<<"最近并没有删除人员信息"<<endl;
+		return;
+	}
+	new_node->next = nullptr;
+	string base = "工资";
+	int rk=1;//排名ranking 
+	if(T::getclas()=="Student") 
+	{
+		base = "得分";
+	}
+	//add同时保持list有序：head到tail 从大到小 
+//	string _name, _id;
+//	int _score;
+//	cout<<"请输入姓名 id "<<base<<":>";
+//	cin>>_name>>_id>>_score;
+//	T* new_obj = new T(_name, _id, _score);
+//	Node<T>* new_node = new Node<T>(*new_obj);
+	if (head!=nullptr)
+	{
+	//list不为空 
+		//找到第一个比new_node小的节点，插在其前面 
+		bool error = true;
+		if (new_node->data.gets()>=head->data.gets())
+		{
+			//new_obj比head大，令new_obj为head
+			new_node->next = head;
+			head->prev = new_node;
+			head = new_node;
+		}
+		else if(tail->data.gets()>=new_node->data.gets())
+		{
+			//此时new_obj<tail,new_tail插在tail后面，更新tail
+			 tail->next = new_node;
+			 new_node->prev = tail;
+			 tail = tail->next;
+		}
+		else
+		{
+			//new_obj应该在中间
+			 Node<T>* tmp = head;
+			 while (tmp)
+			 {
+			 	if(tmp->data.gets()<=new_node->data.gets())
+			 	{
+			 		new_node->next = tmp;
+			 		new_node->prev = tmp->prev; 
+			 		tmp->prev->next = new_node;
+			 		tmp->prev = new_node;
+			 		error = false;
+			 		break;
+				}
+			 	tmp = tmp->next;
+			 }
+			 if (error)
+			 cout<<"add异常退出，找不到合适插入位置"<<endl;
+		}
+//		tail->next = new_node;
+//		tail = tail->next;
+
+	}
+	else
+	{
+	//list为空 
+		tail = head = new_node;
+		rk = 1;
+	}
+	//为各节点排名
+	if(T::getclas()=="Student")
+	{
+		Node<T>* tmp = head; 
+		while(tmp)
+		{
+			tmp->data.ranking = rk;
+			tmp = tmp->next;
+			rk++;
+		}
+	}	
+	cout<<"成功恢复信息!"<<endl;
+	count +=1;
+}
+
+template <typename T>
+void List<T>::remove(Stack<T>* stack)
+{
+	string _id;
+	bool is_found = false; 
+	cout<<"请输入要删除者的id:"<<endl;
+	cin>>_id;
+	Node<T>* tmp = head;
+	while (tmp)
+	{
+		if(tmp->data.getid()==_id)
+		{
+			if(tmp==head)
+			{
+				head = head->next;
+			}
+			else if(tmp==tail)
+			{
+				tail = tail->prev;
+			}
+			else
+			{
+				tmp->prev->next = tmp->next;
+				tmp->next->prev = tmp->prev;
+			}
+			cout<<"成功删除此人"<<endl;
+			is_found = true;
+			break;
+		}
+		tmp = tmp->next;
+	}
+	if(!is_found)
+	{
+		cout<<"删除失败，没有此id人员信息"<<endl;
+		return;
+	}
+	else
+	{
+		if(T::getclas()=="Student")
+		{
+			stack->Push(tmp);
+		}
+		else
+		{
+			stack->Push(tmp);
+		}
+	}
+	count--;
+	
+}
+
+template <typename T>
+bool List<T>::find()
+{
+	bool is_found = false;
+	string _id;
+	cout<<"请输入被查询者id："<<endl;
+	cin>>_id;
+	Node<T>* tmp = head;
+	while (tmp)
+	{
+		if (tmp->data.getid()==_id)
+		{
+			cout<<"查找成功，信息如下；"<<endl;
+			tmp->data.show();
+			is_found = true;
+			break;
+		}
+		tmp = tmp->next;
+//		cout<<"tmp=" <<tmp<<endl;
+	}
+	if(!is_found)
+	{
+		cout<<"查找失败，没有此id人员信息"<<endl;
+	}
+}
+
+template <typename T>
+void List<T>::change()
+{
+	bool is_found = false;
+	string _name, _id, old_id;
+	int _score, _age;
+	again:
+	cout<<"请输入被修改人原来的id："<<endl;
+	cin>>old_id;
+	Node<T>* tmp = head;
+	while(tmp)
+	{
+		if(tmp->data.getid()==old_id)
+		{
+			cout<<"查找成功，此人原来信息如下"<<endl;
+			tmp->data.show();
+			is_found = true;
+			break;
+		}
+		tmp = tmp->next;
+	}
+	if(!is_found)
+	{
+		cout<<"查找失败，没有此id人员信息"<<endl;
+		goto again; 
+	}
+	cout<<"请输入新的姓名 id 得分/工资 年龄"<<endl;
+	cin>>_name>>_id>>_score>>_age;
+	//防止重复id 
+	Node<T>* tmp2 = head;
+	int same =  0;
+	while(tmp2)
+	{
+		if(_id == old_id)
+		{
+			break;
+		}
+//		cout<<"进入while"<<endl;
+		if(tmp2->data.getid()==_id)
+		{
+			same++;
+		}
+		tmp2 = tmp2->next;
+	}
+//	cout<<"same="<<same<<endl;
+	if(same>=1)
+	{
+		cout<<"修改信息失败：id与已有其他人员id号重复"<<endl;
+		return;
+	}
+	tmp->data.set(_name, _id, _score, _age);
+}
+
+template <typename T>
+List<T>::~List()
+{
+	char* fname = "TchData.txt";
+	if (T::getclas()=="Student")
+	{
+		fname = "StuData.txt";
+	}
+	ofstream pf(fname);
+	if(!pf)
+	{
+		cout<<"打开"<<fname<<"失败"<<endl;
+		exit(1);
+	}
+	pf<<count<<endl;
+	if(T::getclas()!="course")
+	cout<<"成功保存" +T::getclas() +"数据至"<<fname<<":"<<endl;
+
+	while(count--)
+	{
+		cout<<head;
+		if(T::getclas()!="course")
+		{
+			// 将写入位置设置为文件末尾
+	    	pf.seekp(0, std::ios::end);
+			head->data.fwrite(pf);
+		}
+		Node<T>* tmp = head;
+		head = head->next;
+		delete tmp;		
+	}
+	cout<<endl;
+	tail = nullptr;
+	if(T::getclas()!="course")
+	{
+		pf.close();
+	}		
+//	cout<<"成功清理"+T::getclas()+"list"<<endl; 
+}
+
+template <typename T>
+ void List<T>::getall() 
+ {
+ 	cout<<"\n             总共有"<<count<<"人"<<endl;
+ 	if (T::getclas()=="Student")
+ 	{
+ 		cout<<"姓名："<<"\t学号："<<"\t得分"<<"\t排名:"<<"\t年龄"<<endl;
+	 }
+	 if(T::getclas()=="Teacher")
+	 {
+	 	cout<<"姓名："<<"\t年龄："<<"\t工号："<<"\t工资："<<endl;
+	 }
+	 
+	 Node<T>* tmp = head;
+	 while(tmp)
+	 {
+//	 	tmp->data.show(true);
+		cout<<tmp;
+	 	tmp = tmp->next;
+	 }
+ }
+
+template <typename T>
+void List<T>::topk()
+{
+	int choice = 0;
+	int begin = 0, end = 0;
+	string base = "工资" ;
+	if(T::getclas()=="Student")
+	{
+		base = "分数"; 
+	}
+	cout<<"进入topk"; 
+	cout<<"请选择导出依据：（1）排名区间  （2） 具体"<<base<<"区间"<<endl; 
+	cin>>choice;
+	cout<<"请输入区间"<<endl;
+	cin>>begin>>end;
+	//顶部信息栏 
+	if (T::getclas()=="Student")
+ 	{
+ 		cout<<"姓名："<<"\t学号："<<"\t得分"<<"\t排名:"<<"\t年龄"<<endl;
+	}
+	else if(T::getclas()=="Teacher")
+	{
+	 	cout<<"姓名："<<"\t年龄："<<"\t工号："<<"\t工资："<<endl;
+	}
+	if(choice==1)
+	{
+		//排名区间导出 
+		int ranking = 0;
+		Node<T>* tmp = head;
+		while(tmp)
+		{
+			ranking++;
+			if (ranking>=begin&&ranking<=end)
+			{
+				tmp->data.show(true);
+			}
+			tmp = tmp->next;
+		}
+	}
+	else if(choice==2)
+	{
+		//具体score/wages区间导出 
+		Node<T>* tmp = head;
+		while(tmp) 
+		{
+			if(tmp->data.gets()>=begin&&tmp->data.gets()<=end)
+			{
+				tmp->data.show(true);
+			}
+			tmp = tmp->next;
+		}
+	}
+	
+	cout<<"已导出全部符合条件的人员信息"<<endl;
+}
+
+
+	
+	
+
+template <typename T>
+int List<T>::count = 0;
+
+class Person{
+	protected:
+		string name;
+		int age;
+	public:
+		Person(string _name, int _age){
+			name = _name;
+			age = _age;
+		}
+		virtual void show(bool less=false) =0;
+};
+
+// 定义学生和教师类
+class Student:virtual public Person {
+	template <typename T>
+	friend class List;
+	protected:
+		std::string id;	//	学号 
+		int score;
+		int ranking;
+		static string clas;
+	public:
+		Student(string _name="无名学生", string _id = "未定id", int _score = 0, int _age=0) :Person(_name, _age) {
+			id = _id;
+			score = _score;
+			if(_age==0)
+			{
+				//未传参默认18 
+				age = 18;
+			}
+		}
+		string _id(){return id;}//用于find 
+
+		void show(bool less=false);//默认详细信息 
+		void set(string _name, string _id, int _score, int _age);//缺省函数参数不可为局部变量和成员变量， 因为参数默认值要编译时确定，但类成员和局部变量要运行时才能确定，全局变量和静态变量可编译时确定 
+		string getid(){
+			return id;
+		}
+		static string getclas(){
+			return clas;
+		}
+		int gets()
+		{
+			return score;
+		}
+		void fread(fstream& pf)
+		{
+			pf>>name>>id>>score>>ranking>>age;
+		}
+		void fwrite(ofstream& pf)
+		{
+			pf<<name<<"\t\t"<<id<<"\t\t"<<score<<"\t\t"<<ranking<<"\t\t"<<age<<"\t\t"<<endl;
+		}
+		Student operator=(Student s)
+		{
+			name = s.name;
+			id = s.id;
+			score = s.score;
+			age = s.age;
+			return *this;
+		}
+};
+
+//string Student::clas = "Student";
+string Student::clas = "Student";
+//string Teacher::clas = "Teacher";
+
+void Student::show(bool less)
+{
+	if(less){
+		cout<<name<<"\t"<<id<<"\t"<<score<<"\t"<<ranking<<"\t"<<age<<endl;
+	}
+	else{
+		cout<<"姓名："<<name<<"\t学号："<<id<<"\t得分\t"<<score<<"\t排名:\t"<<ranking<<"\t年龄"<<age<<endl;
+	}
+}
+ 
+void Student::set(string _name, string _id, int _score, int _age)
+{
+	Person::name = _name;
+	Person::age = _age;
+	id = _id;
+	score = _score;
+	
+}
+
+class Teacher:virtual public Person{
+	template <typename T>
+	friend class List;
+	protected:
+		string id;
+		int wages;
+		int ranking;
+		static string clas;
+	public:
+		Teacher(string _name="无名教师", string _id="未定id", int _age=0, int _wages=0) :Person(_name, _age) {id = _id; if(_wages==0) wages = _age*98+(_age+3423)%13*50;}
+		void show(bool less=false);
+		void set(string _name, string _id, int _age, int _wages);	
+		string getid(){
+			return id;
+		}
+		static string getclas()
+		{
+			return clas;
+		}
+		int gets()
+		{
+			return wages;
+		}
+		void fread(fstream& pf)
+		{
+			pf>>name>>id>>wages>>age; 
+		}
+		
+		void fwrite(ofstream& pf)
+		{
+//			cout<<"进入fwrite"<<endl;
+			pf<<name<<"\t\t"<<id<<"\t\t"<<wages<<"\t\t"<<age<<"\t\t"<<endl;
+		}
+		Teacher operator=(Teacher t)
+		{
+			name = t.name;
+			id = t.id;
+			wages = t.wages;
+			age = t.age;
+			return *this;
+		}
+};
+
+string Teacher::clas = "Teacher";
+
+void Teacher::show(bool less)
+{
+	if (less)
+		cout<<name<<"\t"<<age<<"\t"<<id<<"\t"<<wages<<endl;
+		
+	else
+		cout<<"姓名："<<name<<"\t年龄："<<age<<"\t工号："<<id<<"\t工资："<<wages<<endl;
+}
+
+void Teacher::set(string _name, string _id, int _wages, int _age)
+{
+	name = _name;
+	id = _id;
+	age = _age;
+	wages = _wages;
+}
+
+void menu_begin();
+void menu_tch();
+void menu_stu();
+
+//可以使用cout输出Node 
+template <typename T>
+ostream& operator<<(ostream& out, Node<T>* node)
+{
+	node->data.show(true);
+	return out;
+}
+
+//定义栈 
+template <typename T>
+class Stack:public List<T>{
+	protected:
+		Node<T>* tail;
+		static int count;
+	public:
+		Stack():tail(nullptr){
+		}
+		bool Push(Node<T>*);
+		Node<T>* Pop();
+		void show();
+};
+
+template<typename T>
+int Stack<T>::count = 0; 
+
+template<typename T>
+bool Stack<T>::Push(Node<T>* node)
+{
+	node->next = nullptr;
+	node->prev = nullptr;
+	if(tail==nullptr)
+	{
+		tail = node;
+	}
+	else
+	{
+		node->prev = tail;
+		tail->next = node;
+		tail = tail->next;
+	}
+	count++;
+	return true;
+}
+
+template<typename T>
+Node<T>* Stack<T>::Pop(){
+	if(tail==nullptr)
+	{
+		return nullptr;
+	}
+	Node<T>* ret = tail;
+	tail = tail->prev;
+	count--;
+	return ret;
+}
+
+template<typename T>
+void Stack<T>::show()
+{
+	Node<T>* tmp = tail;
+	cout<<T::getclas()<<"栈中共有"<<count<<"个人,信息如下"<<endl;
+	while (tmp)
+	{
+		tmp->data.show();
+		tmp = tmp->prev;
+	}
+	cout<<endl;
+}
+
+//定义队列类，继承List 
+template <typename T>	
+class Queue:public List<T>
+{
+	friend class Schedule;
+	private:
+		Node<T>* head;
+		Node<T>* tail;
+	public:
+		
+	Queue():head(nullptr),tail(nullptr){
+	}
+    void enqueue(const T& data)//入队 
+    {
+        Node<T>* new_node = new Node<T>(data);
+        if (this->tail != nullptr)
+        {
+            this->tail->next = new_node;
+            this->tail = new_node;
+        }
+        else
+        {
+            this->head = this->tail = new_node;
+        }
+    }
+
+    void dequeue()//出队 
+    {
+        if (this->head != nullptr)
+        {
+            Node<T>* temp = this->head;
+            this->head = this->head->next;
+            delete temp;
+            if (this->head == nullptr)
+            {
+                this->tail = nullptr;
+            }
+        }
+    }
+
+//返回第一个课程信息 
+//常量成员函数不会修改队列对象的状态,即不会改变队列中的元素。
+    T& front()
+    {
+        if (this->head != nullptr)
+        {
+            return this->head->data;
+        }
+        else
+        {
+            cout<<("队列为空");
+        }
+    }
+
+    bool isEmpty() const   //判断是不是空队列 
+    {
+        return this->head == nullptr;
+    }
+};
+
+class ScheduleItem 
+{
+	
+	public:
+	    string description;
+	    ScheduleItem(const string& desc) : description(desc) {}
+	    static string clas;
+	    static string getclas()
+	    {
+	    	return clas;
+		}
+		void fread(fstream&)
+		{
+			return;
+		}
+		void fwrite(ofstream&)
+		{
+			return;
+		}
+		void show(bool val)
+		{
+			cout<<description;
+		}
+};
+
+string ScheduleItem::clas = "ScheduleItem";
+
+//整个日程表 
+class Schedule 
+{
+
+    Queue<ScheduleItem> items;
+
+public:
+    void addScheduleItem(const string& desc) {
+        items.enqueue(ScheduleItem(desc));
+        cout << desc <<" 已加入"<< endl;
+    }
+
+    void completeScheduleItem()
+    {
+        if (!items.isEmpty())
+        {
+            cout << "你已打卡 " << items.front().description << "!" << endl;
+            items.dequeue();
+        }
+        else
+        {
+            cout << "你已完成所有任务！" << endl;
+        }
+    }
+    void printSchedule() const
+    {
+        if (items.isEmpty())
+        {
+            cout << "日程表为空！" << endl;
+            return;
+        }
+        cout << "当前日程表:" << endl;
+        Node<ScheduleItem>* temp = items.head;
+        while (temp != nullptr)
+        {
+            cout << "- " << temp->data.description << endl;
+            temp = temp->next;
+        }}
+};
+void menu_schedule(string clas);
+void schedule(Schedule* _schedule, string clas)
+{
+	
+    int choice;
+    do 
+	{
+        menu_schedule(clas);
+        cout << "欢迎进入"<<clas<<"日程表！请输入您的选择: ";
+        choice = _getch()-48;
+        cout<<choice<<endl;
+        //cin.ignore();  // 忽略缓冲区残留的换行符
+        switch (choice) 
+		{
+            case 1:
+        		{
+                cout << "请加入日程：";
+                string description;
+                //getline(cin, description);
+                cin>>description;
+				_schedule->addScheduleItem(description);
+                break;
+				}
+            case 2:
+                _schedule->completeScheduleItem();
+                //cout<<"已打卡！"; 
+                break;
+            case 3:
+                _schedule->printSchedule();
+                break;
+            case 0:
+                cout << "成功退出日程表！" << endl;
+                break;
+            default:
+                cout << "无效输入，请重试！" << endl;
+        }
+        cout<<"任意按键继续"<<endl;
+        _getch();
+    }while(choice);
+}
+
+//template<typename T>
+//int Queue<T>::count = 0;
+void date()
+{
+	int choice;
+	do
+	{
+		menu_date();
+		choice = _getch()-48;//ASCII中48对应0 
+		cout<<choice<<endl;
+		switch (choice)
+		{
+			case 1:
+				date_current();
+				break;
+			case 2:
+				date_sub();
+				break;
+			case 3:
+				date_nday();
+				break;
+			case 0:
+				break;
+			default:
+				cout<<"输入有误，请重试"<<endl;
+				break;
+		}
+		if(choice!=0)
+		{
+			cout<<"点击任意处继续"<<endl;
+			_getch();
+			cout<<endl;
+		}
+	}while(choice);
+	if(choice==0)
+	{
+		cout<<"成功退出日期计算小程序\n"<<endl;
+	}
+    return;
+}
+
+
+//定义Set类，继承自List类。Set类将使用List的基础结构来存储元素，但添加额外的方法来执行集合操作。
+template <typename T>
+class Set : public List<T> {
+public:
+    // 构造函数和析构函数
+    Set() : List<T>() {}
+    ~Set() {}
+
+    // 集合的差（差集）
+    Set<T> operator-(const Set<T>& other) const {
+        Set<T> result;
+        Node<T>* current = this->head;
+        while (current != nullptr) {
+            if (!other.contains(current->data)) {
+                result.add(current->data);
+            }
+            current = current->next;
+        }
+        return result;
+    }
+
+    // 集合的并（并集）
+    Set<T> operator+(const Set<T>& other) const {
+        Set<T> result = *this;  // 先复制当前集合
+        Node<T>* current = other.head;
+        while (current != nullptr) {
+            if (!result.contains(current->data)) {
+                result.add(current->data);
+            }
+            current = current->next;
+        }
+        return result;
+    }
+
+    // 集合的交（交集）
+    Set<T> intersection(const Set<T>& other) const {
+        Set<T> result;
+        Node<T>* current = this->head;
+        while (current != nullptr) {
+            if (other.contains(current->data)) {
+                result.add(current->data);
+            }
+            current = current->next;
+        }
+        return result;
+    }
+
+    // 检查当前集合是否包含特定元素
+    bool contains(const T& value) const {
+        Node<T>* current = this->head;
+        while (current != nullptr) {
+            if (current->data == value) return true;
+            current = current->next;
+        }
+        return false;
+    }
+
+    // 添加元素到集合
+    void add(const T& value) {
+        if (!contains(value)) {  // 确保集合中不包含重复元素
+            Node<T>* new_node = new Node<T>(value);
+            if (this->tail != nullptr) {
+                this->tail->next = new_node;
+                new_node->prev = this->tail;
+            } else {
+                this->head = new_node;
+            }
+            this->tail = new_node;
+        }
+    }
+};
+//集合的差 (- 运算符重载): 返回一个新的集合，包含存在于当前集合但不在另一个集合中的元素。
+//集合的并 (+ 运算符重载): 返回一个新的集合，包含两个集合的所有唯一元素。
+//集合的交 (intersection 方法): 返回一个新的集合，包含两个集合中共同的元素。
+
+int main()
+{
+	system("title 信息管理系统");
+//	Queue<course>* schedule = new Queue<course>;
+	List<Student>* StuList = new List<Student>;
+	List<Teacher>* TchList = new List<Teacher>;
+	Stack<Student>* StuStack = new Stack<Student>;
+	Stack<Teacher>* TchStack = new Stack<Teacher>;
+	Schedule* pschedule_stu = new Schedule;
+	Schedule* pschedule_tch = new Schedule;
+	int choice = 1;
+	do
+	{
+		menu_begin();
+		choice = _getch()-48;
+		cout<<choice<<endl;
+		if (choice==1)
+		{
+			//教师管理信息系统 
+			int choice_tch = 1;
+			do{
+				menu_tch();
+				choice_tch = _getch()-48;
+				cout<<choice_tch<<endl;
+				switch (choice_tch)
+				{
+					case 0:
+						cout<<"成功退出教师信息管理系统\n任意键继续"<<endl;
+						break;
+					case 1:
+						TchList->add();
+						break;
+					case 2:
+						TchList->remove(TchStack);
+						break;
+					case 3:
+						TchList->find();
+						break;
+					case 4:
+						TchList->change();
+						break;
+					case 5:
+						TchList->getall();
+						break;
+					case 6:
+						TchList->topk();
+						break;
+					case 7:
+						TchStack->show();
+						break;
+					case 8:
+						TchList->add(TchStack->Pop());
+						break;
+					case 9:
+						schedule(pschedule_tch, "教师");
+						break;
+					default:
+						cout<<"输入有误，请重试"<<endl;
+						break;
+				}
+				if(choice_tch>=1&&choice_tch<=9)cout<<"操作完毕!\n(任意键继续)"<<endl;
+				_getch();
+				
+			}while(choice_tch);
+		}
+		else if(choice==2)
+		{
+			//学生管理信息系统 
+			int choice_stu = 1;
+			do{
+				menu_stu();
+				choice_stu = _getch()-48;
+				cout<<choice_stu<<endl;
+				switch (choice_stu)
+				{
+					case 0:
+						cout<<"成功退出学生信息管理系统\n任意键继续"<<endl;
+						break;
+					case 1:
+						StuList->add();
+						break;
+					case 2:
+						StuList->remove(StuStack);
+						break;
+					case 3:
+						StuList->find();
+						break;
+					case 4:
+						StuList->change();
+						break;
+					case 5:
+						StuList->getall();
+						break;
+					case 6:
+						StuList->topk();
+						break;
+					case 7:
+						StuStack->show();
+						break;
+					case 8:
+						StuList->add(StuStack->Pop());
+						break;
+					case 9:
+						schedule(pschedule_stu,"学生");
+						break;
+					default:
+						cout<<"输入有误，请重试"<<endl;
+						break;
+				}				
+				if(choice_stu>=1&&choice_stu<=9)cout<<"操作完毕!\n(任意键继续)"<<endl;
+				_getch();
+			}while(choice_stu);
+		}
+		else if(choice==3) 
+		{
+			date();
+		}
+		else
+		{
+			if(choice!=0)cout<<"输入有误，请重试"<<endl;
+		}
+	}while(choice);
+	cout<<"成功退出系统\n"<<endl;
+	delete StuList;
+	delete TchList;
+	return 0;
+}
+
+void date_sub()
+{
+	int year, month, day; 
+	int ans;
+	time_t now = time(nullptr);
+	struct tm* local_time = localtime(&now);
+	int now_year = local_time->tm_year + 1900; // 年份需要加上 1900
+    int now_month = local_time->tm_mon + 1;    // 月份从 0 开始，需要加上 1
+    int now_day = local_time->tm_mday;         // 日
+    Date now_date(now_year, now_month, now_day);
+	cout<<"请输入一个日期(只写数字，年月日用空格隔开)：>"<<endl;
+	cin>>year>>month>>day;
+	Date tar_date(year, month, day);
+	ans = tar_date-now_date;
+	cout<<"从 "<<now_date<<"到 " <<tar_date<<"共有 "<<ans<<" 天"<<endl;
+	return;
+}
+void date_nday()
+{
+	int n;
+	time_t now = time(nullptr);
+	struct tm* local_time = localtime(&now);
+	int now_year = local_time->tm_year + 1900; // 年份需要加上 1900
+    int now_month = local_time->tm_mon + 1;    // 月份从 0 开始，需要加上 1
+    int now_day = local_time->tm_mday;         // 日
+    Date now_date(now_year, now_month, now_day);
+	cout<<"请输入您想前进的天数（负数表示后退）"<<endl;
+	cin>>n; 
+	Date tar_date;
+	if(n<0)
+	{
+		tar_date = now_date-(-n);
+	}
+	else
+	{
+		tar_date = now_date+n;
+	}
+	cout<<"从 "<<now_date<<" 开始，" <<n<<"天后是 "<<tar_date<<endl; 
+	return;
+}
+
+void date_current()
+{
+	// 获取当前时间的时间戳
+    time_t now = time(nullptr);
+    // 将时间戳转换为本地时间的字符串表示
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", localtime(&now));
+    // 输出当前时间
+    cout << "当前时间为: " << buffer <<endl;
+    return;
+}
+
+void menu_stu()
+{
+	system("title 学生信息管理系统");
+	cout<<endl<<"-------------欢迎来到学生信息管理系统-------------"<<endl;
+	cout<<"1.新增学生信息" <<endl;
+	cout<<"2.删除学生信息"<<endl;
+	cout<<"3.查找学生信息"<<endl; 
+	cout<<"4.修改学生信息"<<endl;
+	cout<<"5.导出全体学生信息"<<endl;
+	cout<<"6.自定义导出符合要求学生信息"<<endl;
+	cout<<"7.查看最近删除学生信息"<<endl;
+	cout<<"8.恢复被删除学生信息"<<endl; 
+	cout<<"9.学生日程系统" <<endl; 
+	cout<<"0.退出学生信息管理系统"<<endl;
+	cout<<"--------------------------------------------------"<<endl;
+	cout<<"请选择操作:>";
+}
+
+void menu_tch()
+{
+	system("title 教师信息管理系统");
+	cout<<endl<<"-------------欢迎来到教师信息管理系统-------------"<<endl;
+	cout<<"1.新增教师信息" <<endl;
+	cout<<"2.删除教师信息"<<endl;
+	cout<<"3.查找教师信息"<<endl; 
+	cout<<"4.修改教师信息"<<endl;
+	cout<<"5.导出全部教师信息"<<endl;
+	cout<<"6.自定义导出教师信息"<<endl;
+	cout<<"7.查看最近删除教师信息"<<endl;
+	cout<<"8.恢复被删除教师信息"<<endl;
+	cout<<"9.教师日程系统" <<endl;
+	cout<<"0.退出教师信息管理系统"<<endl;
+	cout<<"--------------------------------------------------"<<endl;
+	cout<<"请选择操作:>";
+}
+
+void menu_begin()
+{
+	system("title 人员信息管理系统");
+	cout<<endl<<"-------------欢迎来到人员信息管理系统-------------"<<endl;
+	cout<<"1.教师" <<endl;
+	cout<<"2.学生"<<endl;
+	cout<<"3.日期计算"<<endl;
+	cout<<"0.退出系统"<<endl; 
+	cout<<"--------------------------------------------------"<<endl;
+	cout<<"请选择操作对象:>";
+}
+
+void menu_date()
+{
+	system("title 日期计算小程序");
+	cout<<"-------------欢迎来到日期计算小程序-------------"<<endl;
+	cout<<"1.查看当前日期" <<endl;
+	cout<<"2.计算两日期差值"<<endl;
+	cout<<"3.计算n天后日期" <<endl;
+	cout<<"0.退出小程序"<<endl; 
+	cout<<"--------------------------------------------------"<<endl;
+	cout<<"请选择操作对象:> ";
+}
+
+void menu_schedule(string clas)
+{
+	cout<<endl<<"▼▼▼▼▼▼欢迎使用"<<clas<<"日程表▼▼▼▼▼▼"<<endl;
+	cout<<"1 ：添加日程"<<endl;
+	cout<<"2 ：打卡日程"<<endl;
+	cout<<"3 ：查看今日所有日程"<<endl;
+	cout<<"0 ：退出"<<endl; 
+}
