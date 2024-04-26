@@ -1337,12 +1337,8 @@ int main()
 		}
 	}while(choice);
 	cout<<"成功退出系统\n"<<endl;
-//	StuStack->show();
-//	TchStack->show();
 	delete StuList;
 	delete TchList;
-//	delete StuStack;
-//	delete TchStack;
 	return 0;
 }
 
